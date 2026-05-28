@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-server_location = "http://127.0.0.1:8000"
+server_location = st.secrets["be_servel_url"]
 st.title("expense tracker")
 opt = st.sidebar.selectbox("select opeartion",["add_expenses","view_expenses","update_expenses","delete_expenses","search_expenses","sort_expenses","filter_expenses","analyze_spending"])
 
