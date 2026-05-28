@@ -20,9 +20,20 @@ if opt == "add_expenses":
 elif opt == "view_expenses":
     st.header("view expenses")
     response = requests.get(f"{server_location}/expense")
-    data = response.json()
-    df = pd.DataFrame(data)
-    st.dataframe(df)
+    if response.status_code == 200:
+        data = response.json()
+        if isinstance(data, list):
+            df = pd.DataFrame(
+                data,
+                columns=["expense_id", "title", "amount", "category", "date"]
+            )
+            st.dataframe(df)
+        else:
+            st.error("Backend returned error")
+            st.write(data)
+    else:
+        st.error("Backend request failed")
+        st.write(response.text)
 elif opt == "update_expenses":
     st.header("update expenses")
     expense_id = st.text_input("enter id ")
