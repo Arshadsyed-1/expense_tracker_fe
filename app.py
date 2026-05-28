@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 
-server_location = st.secrets["be_servel_url"]
+server_location = st.secrets["be_servel_url"].rstrip("/")
 
 st.title("Expense Tracker")
 
@@ -20,7 +20,13 @@ opt = st.sidebar.selectbox(
     ]
 )
 
-def show_table(data, columns):
+def safe_json_response(response):
+    try:
+        return response.json()
+    except Exception:
+        return response.text
+
+def show_table(data):
     if isinstance(data, list):
         df = pd.DataFrame(data)
         st.dataframe(df)
@@ -55,8 +61,12 @@ if opt == "add_expenses":
                 "d": str(date)
             }
 
-            response = requests.post(f"{server_location}/expense", json=new_data)
-            st.write(response.json())
+            response = requests.post(
+                f"{server_location}/expense",
+                json=new_data
+            )
+
+            st.write(safe_json_response(response))
 
 elif opt == "view_expenses":
     st.header("View Expenses")
@@ -64,10 +74,11 @@ elif opt == "view_expenses":
     response = requests.get(f"{server_location}/expense")
 
     if response.status_code == 200:
-        data = response.json()
-        show_table(data, ["expense_id", "title", "amount", "category", "date"])
+        data = safe_json_response(response)
+        show_table(data)
     else:
         st.error("Backend request failed")
+        st.write(response.status_code)
         st.write(response.text)
 
 elif opt == "update_expenses":
@@ -102,7 +113,7 @@ elif opt == "update_expenses":
             json=new_data
         )
 
-        st.write(response.json())
+        st.write(safe_json_response(response))
 
 elif opt == "delete_expenses":
     st.header("Delete Expenses")
@@ -112,7 +123,7 @@ elif opt == "delete_expenses":
 
     if btn:
         response = requests.delete(f"{server_location}/expense/{expense_id}")
-        st.write(response.json())
+        st.write(safe_json_response(response))
 
 elif opt == "search_expenses":
     st.header("Search Expenses")
@@ -122,8 +133,14 @@ elif opt == "search_expenses":
 
     if btn:
         response = requests.get(f"{server_location}/expense/search/{keyword}")
-        data = response.json()
-        show_table(data, ["expense_id", "title", "amount", "category", "date"])
+
+        if response.status_code == 200:
+            data = safe_json_response(response)
+            show_table(data)
+        else:
+            st.error("Backend request failed")
+            st.write(response.status_code)
+            st.write(response.text)
 
 elif opt == "sort_expenses":
     st.header("Sort Expenses")
@@ -133,8 +150,14 @@ elif opt == "sort_expenses":
 
     if btn:
         response = requests.get(f"{server_location}/expense/sort/{sort_by}")
-        data = response.json()
-        show_table(data, ["expense_id", "title", "amount", "category", "date"])
+
+        if response.status_code == 200:
+            data = safe_json_response(response)
+            show_table(data)
+        else:
+            st.error("Backend request failed")
+            st.write(response.status_code)
+            st.write(response.text)
 
 elif opt == "filter_expenses":
     st.header("Filter Expenses")
@@ -153,8 +176,14 @@ elif opt == "filter_expenses":
 
     if btn:
         response = requests.get(f"{server_location}/expense/filter/{category}")
-        data = response.json()
-        show_table(data, ["expense_id", "title", "amount", "category", "date"])
+
+        if response.status_code == 200:
+            data = safe_json_response(response)
+            show_table(data)
+        else:
+            st.error("Backend request failed")
+            st.write(response.status_code)
+            st.write(response.text)
 
 elif opt == "analyze_spending":
     st.header("Analyze Spending")
@@ -162,7 +191,7 @@ elif opt == "analyze_spending":
     response = requests.get(f"{server_location}/expense/analyze")
 
     if response.status_code == 200:
-        data = response.json()
+        data = safe_json_response(response)
 
         if isinstance(data, list):
             df = pd.DataFrame(data)
@@ -170,10 +199,10 @@ elif opt == "analyze_spending":
 
             if not df.empty:
                 st.bar_chart(df.set_index("category"))
-
         else:
             st.error("Backend returned error")
             st.write(data)
     else:
         st.error("Backend request failed")
+        st.write(response.status_code)
         st.write(response.text)
